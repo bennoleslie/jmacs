@@ -1,0 +1,76 @@
+<html>
+<!--
+
+http://www.canberra.edu.au/~scott/C=Hacking/C-Hacking11/zedace2.html
+
+The Text Editor Sam - Rob Pike
+
+
+
+
+In memory (or not?)
+
+
+Window
+Cursor
+Display update (how fast?)
+
+Scroll
+
+Whole screen refresh.
+
+
+
+
+-->
+
+ <head>
+  <script type="application/javascript">
+  var allStr = "";
+
+  function getKey(keyStroke) {
+      var canvas = document.getElementById("canvas");
+      ch = String.fromCharCode(event.keyCode).toLowerCase();;
+      if (ch == "l") {
+        if (allStr.length > 0) {
+	        allStr = allStr.substr(0, allStr.length - 1)
+	 }
+      } else {
+      	allStr += ch
+      }
+      if (canvas.getContext) {
+      	 var ctx = canvas.getContext("2d");
+	 ctx.clearRect(0, 0, 1000, 1000);
+	 for (i = 0; i < 1000; i += 25) {
+	 	 drawText(ctx, allStr, 0, i);
+		 }
+      }
+  }
+
+  document.onkeypress = getKey;
+
+  function drawCursor(context, x, y) {
+
+}
+
+
+  function drawText(context, str, x, y) {
+  	   context.save();
+
+	   context.font = '16pt courier';
+	   context.textAlign = 'left';
+	   context.textBaseline = 'top';
+	   var metrics = context.measureText(str);
+
+	   context.fillText(str, x, y);
+	   context.beginPath();
+
+	   context.restore();
+    }
+
+  </script>
+ </head>
+ <body onload="draw();">
+   <canvas id="canvas" width="1000" height="1000"></canvas>
+ </body>
+</html>
