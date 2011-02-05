@@ -1,0 +1,65 @@
+Design of jmacs
+===============
+
+What is it?
+-----------
+
+The goal of jmacs is to be a full-featured code editor that runs,
+primarily, in the web browser.
+
+Why would you want this? Well, I think operating systems are going to
+move towards using the browser as the primary user-interface (e.g:
+Chromium, WebOS), and I'd like a decent editor to use.
+
+Mostly though, I'm just interested in how to go about writing an
+editor.
+
+High-level Design
+-----------------
+
+The editor is (or will be) split into the front-end, running in the
+browser, and a back-end running as a web-server which provides access
+to the file system.
+
+The main components of the editor front-end are:
+  * the buffer
+  * the redisplay
+  * the controller
+
+The buffer is the data structure representing the current view of the
+buffer. It provides a number of methods to mutate the view in various
+interesting ways. Some of the operations are:
+  - insert character
+  - delete character
+  - move cursor
+
+The controller converts various key sequences (and other events) into
+appropriate method calls on the buffer data structure.
+
+The redisplay engine repaints the screen, calling into the buffer
+object to determine the current state.
+
+
+Buffer
+------
+
+The buffer represents the data as a list of lines. These are screen
+lines, rather than logical lines.
+
+The buffer also handles:
+ - Cursor Position
+ - Viewable area
+ - Screen size
+
+
+References
+-----------
+
+Design and Implementation of an Advanced Text Editor - Craig Bruce
+ http://mclauchlan.site.net.au/scott/C=Hacking/C-Hacking11/zedace2.html
+
+The Text Editor Sam - Rob Pike
+ http://doc.cat-v.org/plan_9/4th_edition/papers/sam/
+
+JavaScript Madness: Keyboard Events - Jon Wolter
+ http://unixpapa.com/js/key.html
