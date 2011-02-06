@@ -1,0 +1,17 @@
+README
+
+You need to install node to run jmacs.
+
+$ node server.js
+
+Open the browser at http://localhost:9090/
+
+Right now you can only edit the README file :)
+
+
+TODO:
+
+Open support.
+Multiple buffer support.
+Faster redraw.
+vi key codes.
