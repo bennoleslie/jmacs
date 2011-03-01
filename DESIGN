@@ -51,6 +51,25 @@ The buffer also handles:
  - Viewable area
  - Screen size
 
+Each open file has its own 'Buffer' object. The 'Buffer' object embeds an
+HTML5 canvas object.
+
+The editor can support multiple open buffers simultaneasouly, and has the
+potential with this model to display any (or all) of the buffers at once.
+
+Commands that require arguments
+---------------------------------
+
+goto-line
+find/search
+replace (2 input)
+run generic command (n)
+
+-> Dialog boxes mostly suck
+-> The chrome "drop down" approach is kind of nice
+-> Emacs has a permanent input bar at the bottom
+
+
 
 References
 -----------

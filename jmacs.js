@@ -1,269 +1,111 @@
-function Buffer() {
-    this.cursorX = 0
-    this.cursorY = 0
-    this.lines = [""]
-    this.topLine = 0
-    this.width = 0
-    this.height = 0
+/* Jmacs object */
+function Jmacs() {
+    this.workspaces = new Array(0);
+}
+
+Jmacs.prototype.createWorkspace = function createWorkspace() {
+    var ws = new Workspace()
+    this.workspaces.push(ws)
+    return ws
+}
+
+Jmacs.prototype.getActiveWorkspace = function getActiveWorkspace() {
+    return this.workspaces[0]
+}
+
+Jmacs.prototype.handleKey = function handleKey(e, codes) {
+    console.log("jmacs handling", e, codes)
+    return this.getActiveWorkspace().handleKey(e, codes)
+}
+
+Jmacs.prototype.resize = function resize(width, height) {
+    return this.getActiveWorkspace().resize(width, height);
+}
+
+Jmacs.prototype.redisplay = function redisplay() {
+    return this.getActiveWorkspace().redisplay()
+}
+
+/* Workspace object */
+function Workspace() {
+    this.buffers = new Array(0);
+    this.layout = 2
+
     this.leading = 3
-    this.lineHeight = 20
-    this.font = '' + (this.lineHeight - this.leading) +  'px Courier'
-    console.log(this.font)
-    this.cursorColour = "green"
-    this.cursorAlpha = 0.7
+    this.fontHeight = 12
+    this.lineHeight = this.fontHeight + this.leading
+    this.font = '' + this.fontHeight +  'px Monaco'
 }
 
-Buffer.prototype.saveFile = function saveFile() {
-    var client = new XMLHttpRequest()
+Workspace.prototype.createBuffer = function createBuffer(fileName) {
+    var canvas = document.createElement("canvas")
+    canvas.style.position = "absolute"
+    document.body.appendChild(canvas)
 
-    console.log("saving file")
-
-    client.open("PUT", "/test.txt")
-    client.setRequestHeader("Content-Type", "text/plain")
-    client.send(this.lines.join("\n"))
+    var buffer = new Buffer(canvas, this.leading, this.fontHeight, this.lineHeight, this.font)
+    buffer.loadFile(fileName)
+    this.buffers.push(buffer)
+    return buffer
 }
 
-Buffer.prototype.loadFile = function loadFile(fileName) {
-    var client = new XMLHttpRequest()
-    var buffer = this
+Workspace.prototype.handleKey = function handleKey(e, codes) {
+    /* Get current buffer */
+    console.log("workspace handling key", e, codes)
 
-    function handler() {
-        if (this.readyState == this.DONE) {
-            if (this.status == 200 && this.responseText != null) {
-                // success!
-                buffer.lines = this.responseText.split("\n")
-		redisplay()
-                return
-            }
-            console.log("error")
-            // something went wrong
-        }
-    }
-
-    client.onreadystatechange = handler
-    client.open("GET", fileName)
-    client.setRequestHeader("Content-Type", "text/plain")
-    client.send()
-}
-
-Buffer.prototype.getMaxLines = function getMaxLines() {
-    return Math.floor(this.height / this.lineHeight)
-}
-
-Buffer.prototype.resize = function resize(width, height) {
-    this.width = width
-    this.height = height
-    this.showCursor()
-}
-
-Buffer.prototype.showCursor = function showCursor() {
-    if (this.cursorY > this.getMaxLines() - 1) {
-        /* Need to move the window to show the cursor */
-        this.topLine += (this.cursorY - (this.getMaxLines() - 1))
-        this.cursorY = this.getMaxLines() - 1
-    }
-}
-
-Buffer.prototype.getNumLines = function getNumLines() {
-    if (this.lines.length - this.topLine < this.getMaxLines()) {
-        return this.lines.length - this.topLine
+    if (codes[1] == "F1") {
+	this.layout = 1
+    } else if (codes[1] == "F2") {
+	this.layout = 2
+    } else if (codes[1] == "F3") {
+	this.layout = 3
     } else {
-        return this.getMaxLines()
+	var buf = this.buffers[0]
+	return buf.handleKey(e, codes)
+    }
+    this.resize(window.innerWidth, window.innerHeight)
+    this.redisplay()
+    return true
+}
+
+Workspace.prototype.resize = function resize(width, height) {
+    if (this.layout == 1) {
+	this.buffers[0].top = 0
+	this.buffers[0].left = 0
+	this.buffers[0].resize(width, height - this.lineHeight)
+
+	this.buffers[1].visible = false
+
+    } else if (this.layout == 2) {
+	this.buffers[0].top = 0
+	this.buffers[0].left = 0
+	this.buffers[0].resize(width / 2, height - this.lineHeight)
+	this.buffers[0].visible = true
+
+	this.buffers[1].top = 0
+	this.buffers[1].left = width / 2
+	this.buffers[1].resize(width / 2, height - this.lineHeight)
+	this.buffers[1].visible = true
+
+    } else if (this.layout == 3) {
+
+	this.buffers[0].top = 0
+	this.buffers[0].left = 0
+	this.buffers[0].resize(width, (height - this.lineHeight) / 2)
+	this.buffers[0].visible = true
+	
+	this.buffers[1].top = (height - this.lineHeight) / 2
+	this.buffers[1].left = 0
+	this.buffers[1].resize(width, (height - this.lineHeight) / 2)
+	this.buffers[1].visible = true
     }
 }
 
-Buffer.prototype.getLine = function getLine(idx) {
-    return this.lines[this.topLine + idx]
-}
-
-Buffer.prototype.getCurLineIdx = function getCurLineIdx() {
-    return this.cursorY + this.topLine
-}
-
-Buffer.prototype.erase = function erase() {
-    if (this.lines[this.getCurLineIdx()].length > 0 && this.cursorX > 0) {
-        this.lines[this.getCurLineIdx()] = this.lines[this.getCurLineIdx()].substr(0, this.cursorX - 1) + this.lines[this.getCurLineIdx()].substr(this.cursorX, this.lines[this.getCurLineIdx()].length)
-        this.cursorX -= 1
-    }
-    if (this.cursorX == 0 && this.cursorY > 0) {
-        this.cursorX = this.lines[this.getCurLineIdx() - 1].length
-        this.lines[this.getCurLineIdx() - 1] = this.lines[this.getCurLineIdx() - 1] + this.lines[this.getCurLineIdx()]
-        this.lines = this.lines.slice(0, this.getCurLineIdx()).concat(this.lines.slice(this.getCurLineIdx() + 1, this.lines.length))
-        this.cursorY -= 1 // FIXME: what is we are cursorY == 0
+Workspace.prototype.redisplay = function redisplay() {
+    for (i = 0; i < this.buffers.length; i++) {
+	this.buffers[i].redisplay()
     }
 }
 
-Buffer.prototype.insertNewLine = function insertNewLine() {
-    this.lines = this.lines.slice(0, this.getCurLineIdx()).concat([this.lines[this.getCurLineIdx()].substr(0, this.cursorX),
-                                                                   this.lines[this.getCurLineIdx()].substr(this.cursorX, this.lines[this.getCurLineIdx()].length)],
-                                                                  this.lines.slice(this.getCurLineIdx() + 1, this.lines.length))
-    this.moveDownLine()
-    this.moveStartOfLine()
-}
-
-Buffer.prototype.insertLiteral = function insertLiteral(ch) {
-    this.lines[this.getCurLineIdx()] = this.lines[this.getCurLineIdx()].substr(0, this.cursorX) + ch + this.lines[this.getCurLineIdx()].substr(this.cursorX, this.lines[this.getCurLineIdx()].length)
-    this.cursorX += 1
-}
-
-Buffer.prototype.moveStartOfLine = function moveStartOfLine() {
-    this.cursorX = 0
-}
-
-Buffer.prototype.moveEndOfLine = function moveEndOfLine() {
-    this.cursorX = this.lines[buffer.getCurLineIdx()].length
-}
-
-Buffer.prototype.moveForwardChar = function moveForwardChar() {
-    if (this.cursorX < this.lines[this.getCurLineIdx()].length) {
-        this.cursorX += 1
-    }
-}
-
-Buffer.prototype.moveBackChar = function moveBackChar() {
-    if (this.cursorX > 0) {
-        this.cursorX -= 1
-    }
-}
-
-Buffer.prototype.moveUpLine = function moveUpLine() {
-    if (this.getCurLineIdx() > 0) {
-        if (this.cursorY > 0) {
-            this.cursorY -= 1
-        } else {
-            this.topLine -= 1
-        }
-    } else {
-        /* beep() */
-        return
-    }
-
-    if (this.cursorX > this.lines[this.getCurLineIdx()].length) {
-        this.cursorX = this.lines[this.getCurLineIdx()].length
-    }
-}
-
-Buffer.prototype.moveDownLine = function moveDownLine() {
-    if (this.getCurLineIdx() < this.lines.length - 1) {
-        if (this.cursorY < this.getMaxLines() - 1) {
-            this.cursorY += 1
-        } else {
-            this.topLine += 1
-        }
-
-
-    } else {
-        /* beep() */
-        return
-    }
-
-    if (this.cursorX > this.lines[this.getCurLineIdx()].length) {
-        this.cursorX = this.lines[this.getCurLineIdx()].length
-    }
-
-}
-
-var buffer = new Buffer()
-
-/* Redisplay */
-function drawText(ctx, str, x, y) {
-    ctx.save()
-    
-    ctx.font = buffer.font
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'top'
-    var metrics = ctx.measureText(str)
-    
-    ctx.fillText(str, x, y)
-    ctx.beginPath()
-    
-    ctx.restore()
-}
-
-function drawCursor(ctx) {
-    ctx.save()
-
-    ctx.font = buffer.font
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'top'
-
-    ctx.globalAlpha = buffer.cursorAlpha
-    ctx.fillStyle = buffer.cursorColour
-    var cx = ctx.measureText(buffer.getLine(buffer.cursorY).substr(0, buffer.cursorX)).width
-    var t = buffer.getLine(buffer.cursorY).substr(buffer.cursorX, 1)
-    if (t == "") {
-        t = " "
-    }
-    var cw = ctx.measureText(t).width
-
-    ctx.fillRect(cx, buffer.lineHeight * buffer.cursorY, cw, buffer.lineHeight)
-    ctx.restore()
-}
-
-function redisplay() {
-    var canvas = document.getElementById("canvas")
-    var ctx = canvas.getContext("2d")
-
-    canvas.width = buffer.width
-    canvas.height = buffer.height
-    ctx.save()
-    ctx.clearRect(0, 0, 1000, 1000)
-    ctx.restore()
-
-    for (i = 0; i < buffer.getNumLines(); i ++) {
-        drawText(ctx, buffer.getLine(i), 0, i * buffer.lineHeight)
-    }
-
-    drawCursor(ctx)
-}
-
-function handleKey(e, codes) {
-
-    if (!e.ctrlKey && !e.altKey && !e.metaKey && codes[0] === true) {
-        /* Should be a literal */
-        var ch
-        if (e.shiftKey) {
-            ch = codes[2]
-        } else {
-            ch = codes[1]
-        }
-        buffer.insertLiteral(ch)
-    } else if (codes[1] == "Backspace") {
-        buffer.erase()
-    } else if (codes[1] == "Enter") {
-        buffer.insertNewLine()
-    } else if (codes[1] == "Space") {
-        buffer.insertLiteral(' ')
-    } else if (codes[1] == "Tab") {
-        buffer.insertLiteral(' ')
-        buffer.insertLiteral(' ')
-        buffer.insertLiteral(' ')
-        buffer.insertLiteral(' ')
-    } else if (e.ctrlKey && codes[1] == 's') {
-        buffer.saveFile()
-    } else if (e.ctrlKey && codes[1] == 'a') {
-        buffer.moveStartOfLine()
-    } else if (e.ctrlKey && codes[1] == 'e') {
-        buffer.moveEndOfLine()
-    } else if (codes[1] == "Left") {
-        buffer.moveBackChar()
-    } else if (codes[1] == "Right") {
-        buffer.moveForwardChar()
-    } else if (codes[1] == "Up") {
-        buffer.moveUpLine()
-    } else if (codes[1] == "Down") {
-        buffer.moveDownLine()
-    } else {
-        return true
-    }
-
-    redisplay()
-    e.preventDefault()
-    return false
-}
-
-
-var lastKeyCode = -1
 
 function keydown(e) {
     /* Cursor movement */
@@ -275,7 +117,7 @@ function keydown(e) {
         return true
     }
     
-    return handleKey(e, codes)
+    return jmacs.handleKey(e, codes)
 }
 
 function keypress(e) {
@@ -308,16 +150,77 @@ function keypress(e) {
     return true
 }
 
+
+/* 
+   Need some more testing to see if we really care about debouncing the resize event -- we seem
+   to keep up pretty well without the debounce.
+
+   Debounce the resize event 
+
+   props to: http://stackoverflow.com/questions/667426/javascript-resize-event-firing-multiple-times-while-dragging-the-resize-handle
+*/
+function doResize() {
+    jmacs.resize(window.innerWidth, window.innerHeight)
+    jmacs.redisplay()
+}
+
+var resizeTimeout = false
 function resize(e) {
-    buffer.resize(window.innerWidth, window.innerHeight)
-    redisplay()
+    doResize()
+/*
+    if (resizeTimeout !== false) {
+	clearTimeout(resizeTimeout)
+    }
+    resizeTimeout = setTimeout(doResize, 100)
+*/
 }
 
 function start() {
-    buffer.loadFile("/README")
+    var ws = jmacs.createWorkspace()
+    ws.createBuffer("/README")
+    var jsbuf = ws.createBuffer("/jmacs.js")
+    jsbuf.left = 500
+    window.addEventListener("keydown", keydown, true)
+    window.addEventListener("keypress", keypress, true)
+    window.addEventListener("resize", resize, true)
 
-    window.addEventListener("keydown", keydown, false)
-    window.addEventListener("keypress", keypress, false)
-    window.addEventListener("resize", resize, false)
+    document.body.style.overflow = "hidden"
+
     resize()
 }
+
+var jmacs = new Jmacs()
+start()
+
+/*
+    buffer.canvas.left = 50
+    buffer.canvas.top = 50
+
+    var ci = document.getElementById("canvasInput")
+    var ctx = ci.getContext("2d")
+
+    ci.width = 500
+    ci.height = 30
+    ci.position = 'absolute'
+
+    ctx.save()
+    ctx.fillStyle = "red"
+    ctx.fillRect(0, 0, ci.width, ci.height)
+
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.lineTo(20, 30)
+    ctx.lineTo(310, 30)
+    ctx.lineTo(330, 0)
+    ctx.closePath()
+    ctx.fillStyle = "blue"
+    ctx.fill()
+
+    ctx.restore()
+
+    ci.style.setProperty("display", "none")
+
+    var ifr = document.getElementById("foo")
+    ifr.width = 400
+    ifr.height = window.innerHeight - 10
+    */

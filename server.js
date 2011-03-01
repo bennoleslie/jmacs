@@ -1,6 +1,5 @@
 /*
-jmacs server.
-
+ jmacs server.
  */
 var http = require('http');
 var fs = require('fs');
@@ -30,8 +29,14 @@ function doGet(req, res) {
     if (req.url == "/") {
 	fileName = "index.html"
 	contentType = "text/html"
+    } else if (req.url == "/reset-min.css") {
+	fileName = "reset-min.css"
+	contentType = "text/css"
     } else if (req.url == "/jmacs.js") {
 	fileName = "jmacs.js"
+	contentType = "text/javascript"
+    } else if (req.url == "/buffer.js") {
+	fileName = "buffer.js"
 	contentType = "text/javascript"
     } else if (req.url == "/util.js") {
 	fileName = "util.js"

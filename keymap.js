@@ -61,6 +61,16 @@ var baseKeyMap = {
     38: [false, "Up"],
     39: [false, "Right"],
     40: [false, "Down"],
+    /* Should these be distguished, left vs right? */
+    91: [false, "Command"],
+    93: [false, "Command"],
+    112 : [false, "F1"],
+    113 : [false, "F2"],
+    114 : [false, "F3"],
+    115 : [false, "F4"],
+    116 : [false, "F5"],
+    117 : [false, "F6"],
+    118 : [false, "F7"],
 }
 
 var webKitKeyMap = object(baseKeyMap)
